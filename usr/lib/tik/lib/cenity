@@ -1,0 +1,217 @@
+cenity() { 
+
+  trap ctrl_c INT
+  ctrl_c() {
+    echo "Canceled"
+    retvalue=1
+    return
+  }
+
+
+  title=""
+  text=""
+  function=""
+  retvalue=0
+  columns=()
+  content=()
+  column_num=0
+
+  for p in "$@"; do
+    #echo "   p: $p"
+    case "$p" in
+      --info*)
+        function=c_info
+        ;;
+      --warning*)
+	function=c_warning
+        ;;
+      --error*)
+	function=c_error
+        ;;
+      --question*)
+	function=c_question
+        ;;
+      --entry*)
+	function=c_entry
+        ;;
+      --password*)
+	function=c_password
+        ;;
+      --list*)
+	function=c_list
+        ;;
+      --progress*)
+	function=c_progress
+	;;
+      --title*)
+        title=$(cut -d '=' -f2 <<< $p)
+        ;;
+      --text*)
+        text=$(cut -d '=' -f2 <<< $p)
+        ;;
+      --percentage*)
+	percentage=$(cut -d '=' -f2 <<< $p)
+        ;;
+      --column*)
+	columns+=("$(cut -d '=' -f2 <<< $p)")
+	#echo "Column: ${columns[$((${#columns[@]}-1))]}"
+	;;
+      "")
+        echo "Empty: $p"
+        ;;
+      *)
+	content+=("$p")
+	#echo "Content: ${content[$((${#content[@]}-1))]}"
+        ;;
+    esac
+  done
+
+  #echo "function: $function"
+  #echo "Title: $title"
+  #echo "Text: $text"
+  #echo "Content: $content"
+  #echo "Columns number: ${#columns[@]}"
+  #echo "Columns names: ${columns[@]}"
+
+  if [[ ! $function ]]; then
+    echo "function not set"
+    return 1
+  fi
+
+  if [ $function = "c_progress" ]; then
+    echo "Progress (CTRL + C to cancel): "
+
+    echo -ne "  ${percentage}%    # ${text}"
+    if [ -p /dev/stdin ]; then
+      while IFS= read line; do
+        c_progress "${line}"
+      done
+    fi
+  else 
+    $function result "$title" "$text" columns content; retvalue=$?
+  fi
+
+  eval $1='$result'
+  return $retvalue
+}
+
+
+c_progress() {
+  local l=$1
+  re='^[0-9]+$'
+  if [[ ${l} =~ $re ]] ; then
+    printf '%80s' " "; echo -ne "\r"
+    percent=$l
+    printf '%3s%%' "${l}"    
+  elif [[ "${l}" =~ ^#.* ]]; then
+    printf '    %s' "${l}"
+  fi
+}
+
+  
+c_list() {
+  local title=$2
+  local text=$3
+  local -n cols=$4
+  local -n cont=$5
+  
+  local count=1 # set to 1 to skip the very first content tem, which is the variable to return
+  local line=""
+  local lines=()
+  
+  for l in $(seq 1 ${#cont[@]}); do
+    line+=$(printf "%s\t" "${cont[$l]}")
+    if (( count == ${#cols[@]} )); then
+      lines+=("$line")
+      line=""
+      count=0
+    fi
+    count=$((count+1))
+  done
+
+  echo -e "--LIST------ $title -------------\n"
+  echo -e "$text" 
+  
+  # print column title
+  for key in "${!cols[@]}"; do
+    printf '\t%s' "${cols[$key]} "
+  done
+  
+  # print columns
+  for key in "${!lines[@]}"; do
+    printf '\n%s: ' $key
+    printf '\t%s' "${lines[$key]}"
+  done
+
+  echo -e "\nPlease select a number" 
+  read
+  retval=$(printf "%s" "${lines[$REPLY]}" | cut -d $'\t' -f1)
+  eval $1='$retval'
+}
+
+
+c_question() {
+  echo -e "--QUESTION-- $2 -------------\n"
+  echo -e "$3\n"
+  select yn in "Yes" "No"; do
+    case $yn in
+      Yes )
+        echo "Selected: 1) yes"
+        return 0
+        break
+        ;;
+      No )
+        echo "Selected: 2) No"
+        return 1
+        break
+        ;;
+    esac
+  done
+}
+
+
+c_entry() {
+  echo -e "--ENTRY----- $2 -------------\n"
+  read -p "$3: "
+  eval $1='$REPLY'
+}
+
+
+c_password() {
+  echo -e "--PASSWORD-- $2 -------------\n"
+  read -s -p "$3: "
+  eval $1='$REPLY'
+}
+
+
+c_clear() {
+  printf "\033c"
+}
+
+
+c_key() {
+  echo -e "\tPress key to continue"
+  read
+}
+
+
+c_info() {
+  c_clear
+  echo -e "--INFO------ $2 -------------\n"
+  echo -e "$3\n"
+  c_key
+}
+
+
+c_warning() {
+  echo -e "--WARNING--- $2 -------------\n"
+  echo -e "$3\n"
+  c_key
+}
+
+
+c_error() {
+  echo -e "--ERROR----- $2 -------------\n"
+  echo -e "$3\n"
+  c_key
+}
