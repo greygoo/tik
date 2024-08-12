@@ -1,12 +1,12 @@
 cenity() { 
 
   trap ctrl_c INT
+
   ctrl_c() {
     echo "Canceled"
     retvalue=1
     return
   }
-
 
   title=""
   text=""
@@ -17,7 +17,6 @@ cenity() {
   column_num=0
 
   for p in "$@"; do
-    #echo "   p: $p"
     case "$p" in
       --info*)
         function=c_info
@@ -54,34 +53,26 @@ cenity() {
         ;;
       --column*)
 	columns+=("$(cut -d '=' -f2 <<< $p)")
-	#echo "Column: ${columns[$((${#columns[@]}-1))]}"
 	;;
       "")
-        echo "Empty: $p"
         ;;
       *)
 	content+=("$p")
-	#echo "Content: ${content[$((${#content[@]}-1))]}"
         ;;
     esac
   done
 
-  #echo "function: $function"
-  #echo "Title: $title"
-  #echo "Text: $text"
-  #echo "Content: $content"
-  #echo "Columns number: ${#columns[@]}"
-  #echo "Columns names: ${columns[@]}"
 
   if [[ ! $function ]]; then
     echo "function not set"
     return 1
   fi
 
+
   if [ $function = "c_progress" ]; then
     echo "Progress (CTRL + C to cancel): "
-
     echo -ne "  ${percentage}%    # ${text}"
+
     if [ -p /dev/stdin ]; then
       while IFS= read line; do
         c_progress "${line}"
@@ -96,9 +87,21 @@ cenity() {
 }
 
 
+c_clear() {
+  printf "\033c"
+}
+
+
+c_key() {
+  echo -e "\tPress key to continue"
+  read
+}
+
+
 c_progress() {
   local l=$1
-  re='^[0-9]+$'
+  local re='^[0-9]+$'
+
   if [[ ${l} =~ $re ]] ; then
     printf '%80s' " "; echo -ne "\r"
     percent=$l
@@ -114,7 +117,6 @@ c_list() {
   local text=$3
   local -n cols=$4
   local -n cont=$5
-  
   local count=1 # set to 1 to skip the very first content tem, which is the variable to return
   local line=""
   local lines=()
@@ -129,8 +131,8 @@ c_list() {
     count=$((count+1))
   done
 
-  echo -e "--LIST------ $title -------------\n"
-  echo -e "$text" 
+  echo -e "--LIST------ ${title} -------------\n"
+  echo -e "${text}" 
   
   # print column title
   for key in "${!cols[@]}"; do
@@ -145,14 +147,19 @@ c_list() {
 
   echo -e "\nPlease select a number" 
   read
+
   retval=$(printf "%s" "${lines[$REPLY]}" | cut -d $'\t' -f1)
   eval $1='$retval'
 }
 
 
 c_question() {
-  echo -e "--QUESTION-- $2 -------------\n"
-  echo -e "$3\n"
+  local title=$2
+  local text=$3
+
+  echo -e "--QUESTION-- ${title} -------------\n"
+  echo -e "${text}\n"
+
   select yn in "Yes" "No"; do
     case $yn in
       Yes )
@@ -171,47 +178,51 @@ c_question() {
 
 
 c_entry() {
-  echo -e "--ENTRY----- $2 -------------\n"
-  read -p "$3: "
+  local title=$2
+  local text=$3
+
+  echo -e "--ENTRY----- ${title} -------------\n"
+  read -p "${text}: "
   eval $1='$REPLY'
 }
 
 
 c_password() {
-  echo -e "--PASSWORD-- $2 -------------\n"
-  read -s -p "$3: "
+  local title=$2
+  local text=$3
+
+  echo -e "--PASSWORD-- ${title} -------------\n"
+  read -s -p "${text}: "
   eval $1='$REPLY'
 }
 
 
-c_clear() {
-  printf "\033c"
-}
-
-
-c_key() {
-  echo -e "\tPress key to continue"
-  read
-}
-
-
 c_info() {
+  local title=$2
+  local text=$3
+
   c_clear
-  echo -e "--INFO------ $2 -------------\n"
-  echo -e "$3\n"
+  echo -e "--INFO------ ${title} -------------\n"
+  echo -e "${text}\n"
   c_key
 }
 
 
 c_warning() {
-  echo -e "--WARNING--- $2 -------------\n"
-  echo -e "$3\n"
+  local title=$2
+  local text=$3
+
+  echo -e "--WARNING--- ${title} -------------\n"
+  echo -e "${text}\n"
   c_key
 }
 
 
 c_error() {
-  echo -e "--ERROR----- $2 -------------\n"
-  echo -e "$3\n"
+  local title=$2
+  local text=$3
+
+  echo -e "--ERROR----- ${title} -------------\n"
+  echo -e "${text}\n"
   c_key
 }

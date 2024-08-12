@@ -1,6 +1,6 @@
 #!/bin/sh
 
-cenity="/usr/lib/tik/lib/cenity"
+cenity="../cenity"
 . $cenity
 
 RESULT=1
