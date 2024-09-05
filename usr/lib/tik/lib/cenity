@@ -67,7 +67,9 @@ cenity() {
     echo "function not set"
     return 1
   fi
-
+  
+  # temp fix - remove tags
+  text="$(echo "${text}" | sed -e 's/<[^>]*>//g')"
 
   if [ $function = "c_progress" ]; then
     echo "Progress (CTRL + C to cancel): "
@@ -78,7 +80,8 @@ cenity() {
         c_progress "${line}"
       done
     fi
-  else 
+  else
+    result=""
     $function result "$title" "$text" columns content; retvalue=$?
   fi
 
