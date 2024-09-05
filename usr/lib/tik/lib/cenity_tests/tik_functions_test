@@ -1,0 +1,10 @@
+cenity="../cenity"
+. $cenity
+
+d_test(){
+    z_result="$(zenity "$@")" || z_retval=$?
+    cenity c_result "$@" || c_retval=$?
+
+    echo "[cenity][${c_retval}][${c_result}] $@"
+    echo "[zenity][${z_retval}][${z_result}] $@"
+}
