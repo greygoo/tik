@@ -46,7 +46,7 @@ cenity() {
         title=$(cut -d '=' -f2 <<< $p)
         ;;
       --text*)
-        text=$(cut -d '=' -f2 <<< $p)
+        text=$(sed 's/^--text=//' <<< $p)
         ;;
       --percentage*)
 	percentage=$(cut -d '=' -f2 <<< $p)
@@ -68,8 +68,7 @@ cenity() {
     return 1
   fi
   
-  # temp fix - remove tags
-  text="$(echo "${text}" | sed -e 's/<[^>]*>//g')"
+  text=$(c_replace_tags "$text")
 
   if [ $function = "c_progress" ]; then
     echo "Progress (CTRL + C to cancel): "
@@ -89,6 +88,12 @@ cenity() {
   return $retvalue
 }
 
+c_replace_tags() {
+  text="$1"
+  text="$(echo "$text" | sed -e 's/\(<b>\|<tt>\|<big>\)/\\033[1m/g' | sed 's/\(<\/b>\|<\/tt>\|<\/big>\)/\\033[0m/g')"
+  text="$(echo "$text" | sed -e 's/<span face=.*><\/span>//')"
+  echo "$text"
+}
 
 c_clear() {
   printf "\033c"
@@ -204,7 +209,6 @@ c_info() {
   local title=$2
   local text=$3
 
-  c_clear
   echo -e "--INFO------ ${title} -------------\n"
   echo -e "${text}\n"
   c_key
