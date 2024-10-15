@@ -15,7 +15,7 @@ warn() {
 
 error() {
     echo "[${tik_module}][$(date +"%Y%m%d-%T")][ERROR] $*" 1>&2
-    d --error --text "$*"
+    d --error --text="$*"
     exit 1
 }
 
@@ -23,10 +23,10 @@ d(){
     while true
     do
         retval=0
-	if [ $gui ]; then
+	if $gui; then
             result="$(zenity "$@")" || retval=$?
         else
-            cenity result $@ || retval=$?
+            cenity result "$@" || retval=$?
         fi
         log "[zenity][${retval}][${result}] $@"
         case $retval in
@@ -34,7 +34,7 @@ d(){
                 return 0
             ;;
             1|255)
-                if [ $gui ]; then
+                if $gui; then
                     zenity --question --text="Do you really want to quit?" && exit 1
                 else
                     cenity result --question --text="Do you really want to quit?" && exit 1

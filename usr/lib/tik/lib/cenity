@@ -57,8 +57,9 @@ cenity() {
       --pulsating*)
 	progress_pulsating=true
         ;;
-      --no-cancel
+      --no-cancel*)
         cancel=false
+        ;;
       "")
         ;;
       *)
@@ -118,7 +119,7 @@ c_progress() {
   local pulsating=$2
   local re='^[0-9]+$'
 
-  if [[ ${l} =~ $re ]] $$ ! $pulsating ; then
+  if [[ ${l} =~ $re ]] || ! $pulsating ; then
     printf '%80s' " "; echo -ne "\r"
     percent=$l
     printf '%3s%%' "${l}"
