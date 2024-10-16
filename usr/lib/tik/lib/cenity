@@ -11,6 +11,8 @@ cenity() {
   title=""
   text=""
   function=""
+  cancel=true
+  pulsate=false
   retvalue=0
   columns=()
   content=()
@@ -54,8 +56,8 @@ cenity() {
       --column*)
 	columns+=("$(cut -d '=' -f2 <<< $p)")
 	;;
-      --pulsating*)
-	progress_pulsating=true
+      --pulsate*)
+	pulsate=true
         ;;
       --no-cancel*)
         cancel=false
@@ -77,15 +79,19 @@ cenity() {
   text=$(c_replace_tags "$text")
 
   if [ $function = "c_progress" ]; then
+    echo -e "--PROGESS--- ${title} -------------\n"
     if $cancel; then 
       echo "Progress (CTRL + C to cancel): "
     fi
-    echo -ne "  ${percentage}%    # ${text}"
 
     if [ -p /dev/stdin ]; then
-      while IFS= read line; do
-        c_progress "${line} ${pulsating}"
-      done
+      if $pulsate; then
+        cat -
+      else
+        while IFS="" read line; do
+          c_progress "${line}"
+        done
+      fi
     fi
   else
     result=""
@@ -107,23 +113,24 @@ c_clear() {
   printf "\033c"
 }
 
-
 c_key() {
   echo -e "\tPress key to continue"
   read
 }
 
-
 c_progress() {
   local l=$1
-  local pulsating=$2
+  local pulsate=$2
   local re='^[0-9]+$'
 
-  if [[ ${l} =~ $re ]] || ! $pulsating ; then
-    printf '%80s' " "; echo -ne "\r"
+  if [[ ${l} =~ $re ]]; then
+    # clear line
+    printf ' %.0s' {1..100} ; echo -ne "\r"
     percent=$l
-    printf '%3s%%' "${l}"
-  elif [[ "${l}" =~ ^#.* ]]; then
+    # print percentage
+    printf '%3s%%' "${percent}"
+  elif [[ "${l}" =~ ^#.* ]] ; then
+    # print text after previously printed percentage
     printf '    %s' "${l}"
   fi
 }
